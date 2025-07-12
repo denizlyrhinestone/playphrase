@@ -27,6 +27,13 @@ let phrases: Phrase[] = [
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
+  {
+    id: "3",
+    englishText: "I'm just trying to make",
+    turkishTranslation: "Sadece yapmaya çalışıyorum",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
 ]
 
 // Define a schema for validating phrase data
@@ -44,7 +51,7 @@ export async function getPhrases(): Promise<Phrase[]> {
   return phrases
 }
 
-export async function addPhrase(formData: FormData): Promise<{ success: boolean; message: string }> {
+export async function addPhrase(prevState: any, formData: FormData): Promise<{ success: boolean; message: string }> {
   const parsed = phraseSchema.safeParse({
     englishText: formData.get("englishText"),
     turkishTranslation: formData.get("turkishTranslation"),
@@ -63,11 +70,11 @@ export async function addPhrase(formData: FormData): Promise<{ success: boolean;
     updatedAt: new Date().toISOString(),
   }
   phrases.push(newPhrase)
-  revalidatePath("/admin/phrases")
+  revalidatePath("/") // Revalidate the main page to update phrase list
   return { success: true, message: "Phrase added successfully!" }
 }
 
-export async function updatePhrase(formData: FormData): Promise<{ success: boolean; message: string }> {
+export async function updatePhrase(prevState: any, formData: FormData): Promise<{ success: boolean; message: string }> {
   const id = formData.get("id") as string
   const parsed = phraseSchema.safeParse({
     englishText: formData.get("englishText"),
@@ -88,7 +95,7 @@ export async function updatePhrase(formData: FormData): Promise<{ success: boole
       turkishTranslation,
       updatedAt: new Date().toISOString(),
     }
-    revalidatePath("/admin/phrases")
+    revalidatePath("/") // Revalidate the main page
     return { success: true, message: "Phrase updated successfully!" }
   }
   return { success: false, message: "Phrase not found." }
@@ -98,7 +105,7 @@ export async function deletePhrase(id: string): Promise<{ success: boolean; mess
   const initialLength = phrases.length
   phrases = phrases.filter((p) => p.id !== id)
   if (phrases.length < initialLength) {
-    revalidatePath("/admin/phrases")
+    revalidatePath("/") // Revalidate the main page
     return { success: true, message: "Phrase deleted successfully!" }
   }
   return { success: false, message: "Phrase not found." }

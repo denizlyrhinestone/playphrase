@@ -15,12 +15,16 @@ const uploadSchema = z.object({
 })
 
 export async function uploadVideoToSocialMedia(
+  prevState: any,
   formData: FormData,
 ): Promise<{ success: boolean; message: string; data?: any }> {
   const AYRSHARE_API_KEY = process.env.AYRSHARE_API_KEY
 
   if (!AYRSHARE_API_KEY) {
-    return { success: false, message: "Ayrshare API key is not configured." }
+    return {
+      success: false,
+      message: "Ayrshare API key is not configured. Please set AYRSHARE_API_KEY environment variable.",
+    }
   }
 
   // Extract data from FormData
@@ -75,8 +79,8 @@ export async function uploadVideoToSocialMedia(
       return { success: false, message: data.message || "Failed to upload video to social media." }
     }
 
-    // Revalidate the uploads page if you implement a list of past uploads
-    revalidatePath("/admin/uploads")
+    // Revalidate the main page if you implement a list of past uploads
+    revalidatePath("/")
 
     return { success: true, message: "Video upload request sent to Ayrshare successfully!", data }
   } catch (error: any) {
