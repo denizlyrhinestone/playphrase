@@ -85,7 +85,7 @@ export default function UploadsPage() {
                   id="videoUrl"
                   name="videoUrl"
                   type="url"
-                  placeholder="e.g., https://yourdomain.com/processed-video.mp4"
+                  placeholder="e.g., https://yourdomain.org/processed-video.mp4" // Updated placeholder
                   value={videoUrl}
                   onChange={(e) => setVideoUrl(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white"

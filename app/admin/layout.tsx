@@ -1,12 +1,12 @@
 import type React from "react"
 import Link from "next/link"
-import { HomeIcon, BookIcon, UploadCloudIcon, FilmIcon, Share2Icon } from "lucide-react"
+import { HomeIcon, BookIcon, UploadCloudIcon, FilmIcon, Share2Icon, LogInIcon } from "lucide-react"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-950 text-white">
       <aside className="w-64 bg-gray-900 border-r border-gray-800 p-4">
-        <h2 className="text-xl font-bold mb-6 text-red-500">Admin Panel</h2>
+        <h2 className="text-xl font-bold mb-6 text-red-500">Playphrase.org</h2> {/* Updated brand */}
         <nav className="space-y-2">
           <Link
             href="/admin/dashboard"
@@ -37,6 +37,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
           >
             <Share2Icon className="w-5 h-5" /> Uploads
+          </Link>
+          {/* Placeholder for Login/Logout - will be functional with future auth */}
+          <Link
+            href="/login"
+            className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            <LogInIcon className="w-5 h-5" /> Login
           </Link>
         </nav>
       </aside>

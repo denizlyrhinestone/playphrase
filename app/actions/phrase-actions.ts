@@ -1,9 +1,9 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 
-// This array simulates a database table for phrases.
-// In a real application, this would be replaced by a database connection (e.g., PostgreSQL, SQLite).
+// In-memory array to simulate database for phrases
 interface Phrase {
   id: string
   englishText: string
@@ -29,66 +29,77 @@ let phrases: Phrase[] = [
   },
 ]
 
-// Simulate a unique ID generator
-let nextId = phrases.length > 0 ? Math.max(...phrases.map((p) => Number.parseInt(p.id))) + 1 : 1
+// Define a schema for validating phrase data
+const phraseSchema = z.object({
+  englishText: z.string().min(1, "English text is required.").max(500, "English text is too long."),
+  turkishTranslation: z
+    .string()
+    .min(1, "Turkish translation is required.")
+    .max(500, "Turkish translation is too long."),
+})
 
 export async function getPhrases(): Promise<Phrase[]> {
-  // In a real app, this would fetch from your database
+  // Simulate network delay
+  await new Promise((resolve) => setTimeout(resolve, 500))
   return phrases
 }
 
 export async function addPhrase(formData: FormData): Promise<{ success: boolean; message: string }> {
-  const englishText = formData.get("englishText") as string
-  const turkishTranslation = formData.get("turkishTranslation") as string
+  const parsed = phraseSchema.safeParse({
+    englishText: formData.get("englishText"),
+    turkishTranslation: formData.get("turkishTranslation"),
+  })
 
-  if (!englishText || !turkishTranslation) {
-    return { success: false, message: "English text and Turkish translation are required." }
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.errors[0].message }
   }
 
+  const { englishText, turkishTranslation } = parsed.data
   const newPhrase: Phrase = {
-    id: (nextId++).toString(),
+    id: (phrases.length + 1).toString(), // Simple ID generation
     englishText,
     turkishTranslation,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
-
   phrases.push(newPhrase)
-  revalidatePath("/phrases") // Revalidate the phrases page to show new data
+  revalidatePath("/admin/phrases")
   return { success: true, message: "Phrase added successfully!" }
 }
 
 export async function updatePhrase(formData: FormData): Promise<{ success: boolean; message: string }> {
   const id = formData.get("id") as string
-  const englishText = formData.get("englishText") as string
-  const turkishTranslation = formData.get("turkishTranslation") as string
+  const parsed = phraseSchema.safeParse({
+    englishText: formData.get("englishText"),
+    turkishTranslation: formData.get("turkishTranslation"),
+  })
 
-  if (!id || !englishText || !turkishTranslation) {
-    return { success: false, message: "All fields are required for update." }
+  if (!id || !parsed.success) {
+    return { success: false, message: parsed.error.errors[0].message || "ID and all fields are required for update." }
   }
 
-  const phraseIndex = phrases.findIndex((p) => p.id === id)
-  if (phraseIndex === -1) {
-    return { success: false, message: "Phrase not found." }
-  }
+  const { englishText, turkishTranslation } = parsed.data
+  const index = phrases.findIndex((p) => p.id === id)
 
-  phrases[phraseIndex] = {
-    ...phrases[phraseIndex],
-    englishText,
-    turkishTranslation,
-    updatedAt: new Date().toISOString(),
+  if (index !== -1) {
+    phrases[index] = {
+      ...phrases[index],
+      englishText,
+      turkishTranslation,
+      updatedAt: new Date().toISOString(),
+    }
+    revalidatePath("/admin/phrases")
+    return { success: true, message: "Phrase updated successfully!" }
   }
-  revalidatePath("/phrases")
-  return { success: true, message: "Phrase updated successfully!" }
+  return { success: false, message: "Phrase not found." }
 }
 
 export async function deletePhrase(id: string): Promise<{ success: boolean; message: string }> {
   const initialLength = phrases.length
   phrases = phrases.filter((p) => p.id !== id)
-
-  if (phrases.length === initialLength) {
-    return { success: false, message: "Phrase not found." }
+  if (phrases.length < initialLength) {
+    revalidatePath("/admin/phrases")
+    return { success: true, message: "Phrase deleted successfully!" }
   }
-  revalidatePath("/phrases")
-  return { success: true, message: "Phrase deleted successfully!" }
+  return { success: false, message: "Phrase not found." }
 }
