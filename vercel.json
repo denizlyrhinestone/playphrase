@@ -1,5 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "nodeVersion": "18.x",
-  "installCommand": "npm ci --legacy-peer-deps --ignore-scripts"
-}
