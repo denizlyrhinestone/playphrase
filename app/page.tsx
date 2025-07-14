@@ -33,6 +33,7 @@ import {
   PlayIcon,
   PauseIcon,
   RotateCcwIcon,
+  LogOutIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -50,9 +51,11 @@ import { useActionState } from "react"
 import { toast } from "@/hooks/use-toast"
 import { useDropzone } from "react-dropzone"
 
-// Server Actions (will be defined in separate files below)
+// Server Actions
 import { getPhrases, addPhrase, updatePhrase, deletePhrase } from "@/app/actions/phrase-actions"
 import { uploadVideoToSocialMedia } from "@/app/actions/upload-actions"
+import { signOut } from "@/app/actions/auth-actions" // Import signOut action
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client" // Import client-side supabase
 
 interface Phrase {
   id: string
@@ -78,6 +81,7 @@ export default function PlayphraseApp() {
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
   )
   const [isPlaying, setIsPlaying] = useState(false)
+  const [user, setUser] = useState<any>(null) // State to hold user session
 
   // Phrase Management State
   const [phrases, setPhrases] = useState<Phrase[]>([])
@@ -130,6 +134,29 @@ export default function PlayphraseApp() {
       setLoadingPhrases(false)
     }
     fetchPhrasesData()
+  }, [])
+
+  // Effect to get user session on client-side
+  useEffect(() => {
+    const supabase = createBrowserSupabaseClient()
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -336,7 +363,7 @@ export default function PlayphraseApp() {
       <header className="flex items-center justify-between h-16 px-4 md:px-6 border-b border-gray-800">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-            <span className="text-red-500">Playphrase</span>.org {/* Updated brand */}
+            <img src="/images/playphrase-logo-no-bg.png" alt="Playphrase.org Logo" className="h-8 w-auto" />
           </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -364,10 +391,25 @@ export default function PlayphraseApp() {
           </DropdownMenu>
         </div>
         <nav className="flex items-center gap-6 text-sm">
-          <Link href="#" className="flex items-center gap-1 hover:text-gray-400">
-            <LogInIcon className="w-4 h-4" />
-            Login/Register
-          </Link>
+          {user ? (
+            <>
+              <Link href="/admin/phrases" className="flex items-center gap-1 hover:text-gray-400">
+                <Film className="w-4 h-4" />
+                Admin Panel
+              </Link>
+              <form action={signOut} className="inline-block">
+                <Button type="submit" variant="ghost" className="flex items-center gap-1 hover:text-gray-400">
+                  <LogOutIcon className="w-4 h-4" />
+                  Logout
+                </Button>
+              </form>
+            </>
+          ) : (
+            <Link href="/login" className="flex items-center gap-1 hover:text-gray-400">
+              <LogInIcon className="w-4 h-4" />
+              Login/Register
+            </Link>
+          )}
           <Link href="#" className="flex items-center gap-1 hover:text-gray-400">
             <Lock className="w-4 h-4" />
             Unlock Premium Features
@@ -646,7 +688,7 @@ export default function PlayphraseApp() {
                           placeholder="Enter Turkish translation"
                           value={turkishOverlay}
                           onChange={(e) => setTurkishOverlay(e.target.value)}
-                          className="col-span-3 bg-gray-800 border-gray-700 text-white"
+                          className="bg-gray-800 border-gray-700 text-white"
                         />
                       </div>
                       <Button className="w-full bg-gray-700 hover:bg-gray-600">

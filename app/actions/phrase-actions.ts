@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { createClient } from "@/lib/supabase/server"
 
-// In-memory array to simulate database for phrases
 interface Phrase {
   id: string
   englishText: string
@@ -12,31 +12,6 @@ interface Phrase {
   updatedAt: string
 }
 
-let phrases: Phrase[] = [
-  {
-    id: "1",
-    englishText: "Hello world",
-    turkishTranslation: "Merhaba dünya",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    englishText: "How are you?",
-    turkishTranslation: "Nasılsın?",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    englishText: "I'm just trying to make",
-    turkishTranslation: "Sadece yapmaya çalışıyorum",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-]
-
-// Define a schema for validating phrase data
 const phraseSchema = z.object({
   englishText: z.string().min(1, "English text is required.").max(500, "English text is too long."),
   turkishTranslation: z
@@ -46,9 +21,25 @@ const phraseSchema = z.object({
 })
 
 export async function getPhrases(): Promise<Phrase[]> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  return phrases
+  const supabase = createClient()
+  const { data, error } = await supabase.from("phrases").select("*").order("created_at", { ascending: false })
+
+  if (error) {
+    if (error.code === "42P01") {
+      console.warn("Supabase table 'phrases' does not exist yet. Please run the SQL migration. Returning empty list.")
+      return []
+    }
+    console.error("Error fetching phrases:", error.message)
+    return []
+  }
+
+  return data.map((p: any) => ({
+    id: p.id,
+    englishText: p.english_text,
+    turkishTranslation: p.turkish_translation,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  }))
 }
 
 export async function addPhrase(prevState: any, formData: FormData): Promise<{ success: boolean; message: string }> {
@@ -62,15 +53,26 @@ export async function addPhrase(prevState: any, formData: FormData): Promise<{ s
   }
 
   const { englishText, turkishTranslation } = parsed.data
-  const newPhrase: Phrase = {
-    id: (phrases.length + 1).toString(), // Simple ID generation
-    englishText,
-    turkishTranslation,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  const supabase = createClient()
+
+  const { error } = await supabase.from("phrases").insert({
+    english_text: englishText,
+    turkish_translation: turkishTranslation,
+  })
+
+  if (error?.code === "42P01") {
+    return {
+      success: false,
+      message: "Database table 'phrases' not found. Please run the SQL migration to create it.",
+    }
   }
-  phrases.push(newPhrase)
-  revalidatePath("/") // Revalidate the main page to update phrase list
+
+  if (error) {
+    console.error("Error adding phrase:", error.message)
+    return { success: false, message: `Failed to add phrase: ${error.message}` }
+  }
+
+  revalidatePath("/")
   return { success: true, message: "Phrase added successfully!" }
 }
 
@@ -86,27 +88,49 @@ export async function updatePhrase(prevState: any, formData: FormData): Promise<
   }
 
   const { englishText, turkishTranslation } = parsed.data
-  const index = phrases.findIndex((p) => p.id === id)
+  const supabase = createClient()
 
-  if (index !== -1) {
-    phrases[index] = {
-      ...phrases[index],
-      englishText,
-      turkishTranslation,
-      updatedAt: new Date().toISOString(),
+  const { error } = await supabase
+    .from("phrases")
+    .update({
+      english_text: englishText,
+      turkish_translation: turkishTranslation,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+
+  if (error?.code === "42P01") {
+    return {
+      success: false,
+      message: "Database table 'phrases' not found. Please run the SQL migration to create it.",
     }
-    revalidatePath("/") // Revalidate the main page
-    return { success: true, message: "Phrase updated successfully!" }
   }
-  return { success: false, message: "Phrase not found." }
+
+  if (error) {
+    console.error("Error updating phrase:", error.message)
+    return { success: false, message: `Failed to update phrase: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  return { success: true, message: "Phrase updated successfully!" }
 }
 
 export async function deletePhrase(id: string): Promise<{ success: boolean; message: string }> {
-  const initialLength = phrases.length
-  phrases = phrases.filter((p) => p.id !== id)
-  if (phrases.length < initialLength) {
-    revalidatePath("/") // Revalidate the main page
-    return { success: true, message: "Phrase deleted successfully!" }
+  const supabase = createClient()
+  const { error } = await supabase.from("phrases").delete().eq("id", id)
+
+  if (error?.code === "42P01") {
+    return {
+      success: false,
+      message: "Database table 'phrases' not found. Please run the SQL migration to create it.",
+    }
   }
-  return { success: false, message: "Phrase not found." }
+
+  if (error) {
+    console.error("Error deleting phrase:", error.message)
+    return { success: false, message: `Failed to delete phrase: ${error.message}` }
+  }
+
+  revalidatePath("/")
+  return { success: true, message: "Phrase deleted successfully!" }
 }

@@ -8,9 +8,12 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Playphrase.org - Learn English Phrases with Video Clips", // Updated title for brand consistency and SEO
+  title: "Playphrase.org - Learn English Phrases with Video Clips",
   description:
-    "Curate, edit, and automate video content from playphrase.org for social media. Learn English phrases with video clips and Turkish translations.", // Updated description for SEO
+    "Curate, edit, and automate video content from playphrase.org for social media. Learn English phrases with video clips and Turkish translations.",
+  icons: {
+    icon: "/favicon.ico", // Path to your favicon
+  },
     generator: 'v0.dev'
 }
 

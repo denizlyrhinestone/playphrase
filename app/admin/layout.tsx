@@ -1,12 +1,27 @@
 import type React from "react"
 import Link from "next/link"
-import { HomeIcon, BookIcon, UploadCloudIcon, FilmIcon, Share2Icon, LogInIcon } from "lucide-react"
+import { HomeIcon, BookIcon, UploadCloudIcon, FilmIcon, Share2Icon, LogInIcon, LogOutIcon } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { signOut } from "@/app/actions/auth-actions"
+import { Button } from "@/components/ui/button"
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/login")
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-950 text-white">
       <aside className="w-64 bg-gray-900 border-r border-gray-800 p-4">
-        <h2 className="text-xl font-bold mb-6 text-red-500">Playphrase.org</h2> {/* Updated brand */}
+        <div className="mb-6">
+          <img src="/images/playphrase-logo-no-bg.png" alt="Playphrase.org Logo" className="h-10 w-auto" />
+        </div>
         <nav className="space-y-2">
           <Link
             href="/admin/dashboard"
@@ -38,13 +53,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Share2Icon className="w-5 h-5" /> Uploads
           </Link>
-          {/* Placeholder for Login/Logout - will be functional with future auth */}
-          <Link
-            href="/login"
-            className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
-          >
-            <LogInIcon className="w-5 h-5" /> Login
-          </Link>
+          {user ? (
+            <form action={signOut} className="w-full">
+              <Button
+                type="submit"
+                variant="ghost"
+                className="w-full justify-start flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
+              >
+                <LogOutIcon className="w-5 h-5" /> Logout
+              </Button>
+            </form>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors"
+            >
+              <LogInIcon className="w-5 h-5" /> Login
+            </Link>
+          )}
         </nav>
       </aside>
       <main className="flex-1 p-6 overflow-auto">{children}</main>

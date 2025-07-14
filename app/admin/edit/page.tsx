@@ -143,7 +143,7 @@ export default function VideoEditingPage() {
                     placeholder="Enter Turkish translation"
                     value={turkishOverlay}
                     onChange={(e) => setTurkishOverlay(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="col-span-3 bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
                 <Button className="w-full bg-gray-700 hover:bg-gray-600">
